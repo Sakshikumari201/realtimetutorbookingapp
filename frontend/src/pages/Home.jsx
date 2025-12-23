@@ -45,7 +45,7 @@ const Home = () => {
       <section className="py-20 bg-bg-elevated/50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Why Choose TutorBooking?</h2>
+            <h2 className="text-3xl font-bold mb-4">Why Choose Pre Tech?</h2>
             <p className="text-text-secondary">Everything you need to succeed in your learning journey.</p>
           </div>
 
@@ -117,7 +117,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="py-8 border-t border-border mt-auto">
         <div className="max-w-6xl mx-auto px-6 text-center text-text-secondary text-sm">
-          &copy; {new Date().getFullYear()} TutorBooking. All rights reserved.
+          &copy; {new Date().getFullYear()} Pre Tech. All rights reserved.
         </div>
       </footer>
     </div>
