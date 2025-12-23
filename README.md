@@ -1,6 +1,6 @@
 # Real-Time Tutor Booking System
 
-A full-stack web application for connecting students with tutors, featuring real-time booking workflows, learning outcome tracking, and admin analytics.
+A full-stack web application for connecting students with tutors, featuring real-time booking workflows, live chat, interactive dashboards, and admin analytics.
 
 ---
 
@@ -10,10 +10,13 @@ This platform enables students to discover tutors based on subject expertise, bu
 
 ### Key Features
 
-- **Tutor Discovery** - Search and filter tutors by subject, budget, and availability with a smart matching algorithm
-- **Real-Time Booking** - State machine workflow: Requested → Accepted/Rejected → Completed
-- **Feedback System** - Star ratings, comments, and learning outcome tracking (before/after skill levels)
-- **Admin Dashboard** - Platform analytics, tutor effectiveness metrics, and alerts
+- **Tutor Discovery** - Search and filter tutors by subject, budget, and availability with a smart matching algorithm.
+- **Real-Time Booking** - State machine workflow: Requested → Accepted/Rejected → Completed.
+- **Real-Time Notifications** - Instant alerts for booking updates and messages using Socket.io.
+- **Live Chat** - Integrated messaging system for students and tutors to coordinate sessions.
+- **Feedback System** - Star ratings, comments, and learning outcome tracking.
+- **Role-Based Dashboards** - Dedicated interfaces for Students, Tutors, and Admins.
+- **Admin Dashboard** - Platform analytics, tutor effectiveness metrics, and user management.
 
 ---
 
@@ -34,7 +37,8 @@ This platform enables students to discover tutors based on subject expertise, bu
 │   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘       │      │
 │          └────────────────┴────────────────┴──────────────┘      │
 │                                    │                              │
-│                           HTTP/REST API                           │
+│                           HTTP/REST API & Socket.io               │
+│                                    │                              │
 └────────────────────────────────────┬─────────────────────────────┘
                                      │
 ┌────────────────────────────────────┴─────────────────────────────┐
@@ -51,14 +55,14 @@ This platform enables students to discover tutors based on subject expertise, bu
 │   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └────┬────┘ │
 │          └────────────────┴────────────────┴───────────────┘      │
 │                                    │                              │
-│                           PostgreSQL Driver                       │
+│                            Mongoose ODM                           │
+│                                    │                              │
 └────────────────────────────────────┬─────────────────────────────┘
                                      │
 ┌────────────────────────────────────┴─────────────────────────────┐
-│                        DATABASE (PostgreSQL)                      │
+│                        DATABASE (MongoDB)                         │
 ├──────────────────────────────────────────────────────────────────┤
-│   users │ tutors │ tutor_availability │ bookings │ feedback │     │
-│                              learning_outcomes                    │
+│  Collections: users, bookings, reviews, messages                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,6 +77,7 @@ This platform enables students to discover tutors based on subject expertise, bu
 | React 19       | UI framework              |
 | Vite 7         | Build tool & dev server   |
 | Tailwind CSS 3 | Utility-first CSS styling |
+| Socket.io Client| Real-time communication  |
 
 ### Backend
 
@@ -80,7 +85,9 @@ This platform enables students to discover tutors based on subject expertise, bu
 | ---------- | --------------------- |
 | Node.js    | Runtime environment   |
 | Express.js | REST API framework    |
-| PostgreSQL | Relational database   |
+| MongoDB    | NoSQL Database        |
+| Mongoose   | ODM for MongoDB       |
+| Socket.io  | Real-time event server|
 | JWT        | Authentication tokens |
 | bcrypt     | Password hashing      |
 
@@ -109,27 +116,9 @@ This platform enables students to discover tutors based on subject expertise, bu
 | ------ | ---------------------------- | --------------------------------- |
 | POST   | `/api/bookings`              | BookingModal (create booking)     |
 | GET    | `/api/bookings/:id`          | BookingModal (status polling)     |
-| POST   | `/api/bookings/:id/respond`  | BookingFlow (tutor accept/reject) |
-| POST   | `/api/bookings/:id/complete` | Mark session complete             |
-| GET    | `/api/bookings/student/:id`  | BookingFlow (student view)        |
-| GET    | `/api/bookings/tutor/:id`    | BookingFlow (tutor view)          |
-
-### Feedback
-
-| Method | Endpoint                             | Used By                           |
-| ------ | ------------------------------------ | --------------------------------- |
-| POST   | `/api/feedback`                      | FeedbackForm (submit rating)      |
-| GET    | `/api/feedback/outcomes/:student_id` | OutcomeTracker (progress history) |
-| GET    | `/api/feedback/tutor/:tutor_id`      | Tutor feedback history            |
-
-### Admin
-
-| Method | Endpoint              | Used By                         |
-| ------ | --------------------- | ------------------------------- |
-| GET    | `/api/admin/stats`    | AdminDashboard (KPI cards)      |
-| GET    | `/api/admin/tutors`   | AdminDashboard (leaderboard)    |
-| GET    | `/api/admin/subjects` | AdminDashboard (trends table)   |
-| GET    | `/api/admin/alerts`   | AdminDashboard (alerts section) |
+| PUT    | `/api/bookings/:id`          | BookingFlow (tutor accept/reject) |
+| GET    | `/api/bookings/student`      | BookingFlow (student view)        |
+| GET    | `/api/bookings/tutor`        | BookingFlow (tutor view)          |
 
 ---
 
@@ -144,12 +133,11 @@ project/
 │   └── src/
 │       ├── server.js         # Express app entry
 │       ├── db/
-│       │   ├── pool.js       # PostgreSQL connection
-│       │   ├── schema.sql    # Database tables
-│       │   └── init.js       # Seed script
+│       │   └── init.js       # Seed script for MongoDB
 │       ├── middleware/
 │       │   ├── auth.js       # JWT verification
 │       │   └── validation.js # Input validation
+│       ├── models/           # Mongoose Models (User, Booking, etc.)
 │       ├── controllers/      # Business logic
 │       └── routes/           # API route definitions
 │
@@ -157,11 +145,9 @@ project/
     ├── .env.example          # Environment template
     ├── package.json
     ├── tailwind.config.js    # Tailwind theme config
-    ├── postcss.config.js     # PostCSS plugins
     └── src/
         ├── App.jsx           # Main app with routing
-        ├── index.css         # Tailwind + component classes
-        ├── hooks/            # Data fetching hooks
+        ├── context/          # Auth & Socket Context
         ├── components/       # Reusable UI components
         └── pages/            # Page components
 ```
@@ -173,7 +159,7 @@ project/
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
+- MongoDB (running locally on port 27017 or Atlas URI)
 - npm or bun
 
 ### 1. Clone & Install
@@ -195,7 +181,7 @@ npm install
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials
+# Edit .env with your MongoDB credentials (default is localhost:27017)
 ```
 
 **Frontend** - Copy `.env`:
@@ -212,7 +198,7 @@ cd backend
 npm run db:init
 ```
 
-This creates all tables and seeds sample data (3 tutors, 6 users, availability slots).
+This commands connects to MongoDB and seeds sample data (users, bookings, requests).
 
 ### 4. Start Development Servers
 
@@ -238,47 +224,23 @@ Visit **http://localhost:5173** in your browser.
 
 ---
 
-## 📦 Build for Production
+## 🗃️ Database Schema (MongoDB)
 
-### Frontend
-
-```bash
-cd frontend
-npm run build
-# Output: frontend/dist/
-```
-
-### Backend
-
-```bash
-cd backend
-npm start
-# Runs without --watch flag
-```
-
----
-
-## 🗃️ Database Schema
-
-| Table                | Description                                       |
-| -------------------- | ------------------------------------------------- |
-| `users`              | All users (students, tutors, admins)              |
-| `tutors`             | Tutor profiles with subjects, rating, hourly rate |
-| `tutor_availability` | Available time slots per tutor                    |
-| `bookings`           | Session bookings with status workflow             |
-| `feedback`           | Post-session ratings and comments                 |
-| `learning_outcomes`  | Before/after skill level tracking                 |
+| Collection | Description                                       |
+| ---------- | ------------------------------------------------- |
+| `users`    | All users (Student, Tutor, Admin) with role field |
+| `bookings` | Session bookings with status tracking             |
+| `reviews`  | Post-session ratings and comments                 |
+| `messages` | Chat messages between users                       |
 
 ---
 
 ## 👥 Sample Users (after db:init)
 
-| Email             | Role                       |
-| ----------------- | -------------------------- |
-| student1@test.com | Student                    |
-| tutor1@test.com   | Tutor (Dr. Sarah Math)     |
-| tutor2@test.com   | Tutor (Prof. Mike Physics) |
-| tutor3@test.com   | Tutor (Ms. Emily Chem)     |
-| admin@test.com    | Admin                      |
+| Email             | Role                       | Password |
+| ----------------- | -------------------------- | -------- |
+| student1@test.com | Student                    | password123 |
+| tutor1@test.com   | Tutor (Dr. Sarah Math)     | password123 |
+| admin@test.com    | Admin                      | password123 |
 
 ---
