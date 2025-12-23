@@ -13,7 +13,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full border-b border-gray-700/40 bg-bg-card/90 backdrop-blur">
+    <nav className="w-full border-b border-gray-700/40 bg-bg-card/90 backdrop-blur relative z-50">
       <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
         <Link to={user ? '/dashboard' : '/'} className="font-bold text-lg text-text-primary hover:text-text-primary">
           TutorBooking

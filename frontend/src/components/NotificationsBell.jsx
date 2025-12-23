@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { BellIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationsContext';
@@ -25,11 +25,28 @@ const timeAgo = (iso) => {
 const NotificationsBell = () => {
   const { items, unreadCount, markAllRead, markRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
+  const bellRef = useRef(null);
 
   const top = useMemo(() => items.slice(0, 10), [items]);
 
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (bellRef.current && !bellRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={bellRef}>
       <button
         type="button"
         className="relative btn btn-secondary"
@@ -45,62 +62,82 @@ const NotificationsBell = () => {
       </button>
 
       {open ? (
-        <div className="absolute right-0 mt-2 w-[360px] max-w-[90vw] card p-0 overflow-hidden z-50">
-          <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="absolute right-0 mt-2 w-[360px] max-w-[90vw] card p-0 overflow-hidden z-50 shadow-xl border border-gray-700">
+          <div className="p-4 border-b border-gray-700 flex items-center justify-between bg-bg-elevated/50">
             <div>
               <div className="text-sm text-text-secondary">Notifications</div>
               <div className="text-lg font-semibold">Inbox</div>
             </div>
             <div className="flex gap-2">
-              <button className="btn btn-ghost" type="button" onClick={markAllRead}>Mark all read</button>
-              <button className="btn btn-ghost" type="button" onClick={clearAll} aria-label="Clear">
-                <TrashIcon className="w-5 h-5" />
+              <button
+                className="btn btn-xs btn-ghost text-xs"
+                type="button"
+                onClick={markAllRead}
+              >
+                Mark all read
+              </button>
+              <button
+                className="btn btn-xs btn-outline btn-error text-xs flex items-center gap-1"
+                type="button"
+                onClick={clearAll}
+                aria-label="Clear All"
+              >
+                <TrashIcon className="w-3 h-3" />
+                Clear
               </button>
             </div>
           </div>
 
-          <div className="max-h-[420px] overflow-y-auto">
+          <div className="max-h-[420px] overflow-y-auto bg-bg-card">
             {top.length === 0 ? (
-              <div className="p-4 text-sm text-text-secondary">No notifications yet.</div>
+              <div className="p-8 text-center text-text-secondary flex flex-col items-center gap-2">
+                <BellIcon className="w-8 h-8 opacity-20" />
+                <span>No notifications yet.</span>
+              </div>
             ) : (
               top.map((n) => (
-                <div key={n.id} className={`p-4 border-b border-gray-700/40 ${n.read ? '' : 'bg-bg-elevated/60'}`}>
+                <div key={n.id} className={`p-4 border-b border-gray-700/40 transition-colors hover:bg-bg-elevated/30 ${n.read ? 'opacity-70' : 'bg-bg-elevated/20'}`}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={typeBadge(n.type)}>{n.type}</span>
-                        <div className="font-semibold truncate">{n.title}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`${typeBadge(n.type)} text-[10px] px-1.5 py-0.5 h-auto min-h-0`}>{n.type}</span>
+                        <div className={`text-sm truncate ${n.read ? 'font-medium' : 'font-bold text-white'}`}>{n.title}</div>
                       </div>
-                      <div className="text-sm text-text-secondary mt-1 break-words">{n.message}</div>
-                      <div className="text-xs text-text-secondary mt-2">{timeAgo(n.createdAt)}</div>
-                      {n.booking_id ? (
-                        <div className="mt-2">
+                      <div className="text-sm text-text-secondary break-words leading-snug">{n.message}</div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-text-secondary/60">{timeAgo(n.createdAt)}</span>
+                        {n.booking_id && (
                           <Link
-                            className="text-sm underline"
+                            className="text-xs text-primary hover:underline"
                             to={`/session/${n.booking_id}`}
                             onClick={() => {
                               markRead(n.id);
                               setOpen(false);
                             }}
                           >
-                            Open booking
+                            View Booking
                           </Link>
-                        </div>
-                      ) : null}
+                        )}
+                      </div>
                     </div>
-                    {!n.read ? (
-                      <button className="btn btn-ghost" type="button" onClick={() => markRead(n.id)}>
-                        Mark read
+                    {!n.read && (
+                      <button
+                        className="btn btn-ghost btn-xs text-[10px] px-1 h-6 min-h-0"
+                        type="button"
+                        title="Mark as read"
+                        onClick={() => markRead(n.id)}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
                       </button>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <div className="p-3 border-t border-gray-700 flex justify-end">
-            <button className="btn btn-secondary" type="button" onClick={() => setOpen(false)}>Close</button>
+          <div className="p-2 border-t border-gray-700 bg-bg-elevated/30 flex justify-center">
+            <span className="text-[10px] text-text-secondary">Only last 50 notifications are shown</span>
           </div>
         </div>
       ) : null}
