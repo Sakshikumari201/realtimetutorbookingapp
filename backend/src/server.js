@@ -24,8 +24,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const httpServer = http.createServer(app);
 
+// CORS configuration for auth support
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Serve uploaded avatars

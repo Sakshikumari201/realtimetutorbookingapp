@@ -14,6 +14,7 @@ export const SocketProvider = ({ children }) => {
     if (user && token) {
       const newSocket = io(URL, {
         autoConnect: true,
+        withCredentials: true,
         auth: { token }
       });
 
